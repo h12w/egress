@@ -1,0 +1,29 @@
+package remote
+
+import (
+	"net/http"
+
+	"h12.me/egress/protocol"
+)
+
+func Serve(w http.ResponseWriter, r *http.Request) {
+	ctx := NewContext(r)
+	req, err := protocol.UnmarshalRequest(r.Body)
+	if err != nil {
+		ctx.Errorf("fail to unmarshal a request: %s", err.Error())
+		return
+	}
+	defer req.Body.Close()
+	// a proxy should use Transport directly to avoid automatic redirection and
+	// return the response as long as it is not nil.
+	resp, err := ctx.NewClient().Transport.RoundTrip(req)
+	if resp == nil {
+		ctx.Errorf("fail to fetch: %v", err)
+		return
+	}
+	defer resp.Body.Close()
+	if err := protocol.MarshalResponse(resp, w); err != nil {
+		ctx.Errorf("fail to marshal a response: %s", err.Error())
+		return
+	}
+}
