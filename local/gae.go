@@ -2,7 +2,6 @@ package local
 
 import (
 	"bufio"
-	"bytes"
 	"errors"
 	"io"
 	"log"
@@ -107,11 +106,11 @@ func hijack(w http.ResponseWriter) (net.Conn, error) {
 }
 
 func (g *gaeDelegate) fetch(req *http.Request) (*http.Response, error) {
-	var buf bytes.Buffer
-	if err := protocol.MarshalRequest(req, &buf); err != nil {
+	req, err := protocol.MarshalRequest(req, g.remote)
+	if err != nil {
 		return nil, err
 	}
-	resp, err := g.client.Post(g.remote, "application/data", &buf)
+	resp, err := g.client.Do(req)
 	if err != nil {
 		return nil, err
 	}
