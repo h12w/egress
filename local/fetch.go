@@ -4,10 +4,12 @@ import (
 	"bufio"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"sync"
 
+	"h12.me/egress/geoip"
 	"h12.me/egress/protocol"
 )
 
@@ -91,7 +93,6 @@ func (l *blockList) add(host string) error {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	if _, ok := l.m[host]; !ok {
-		log.Printf("ADD HOST: %s", host)
 		l.m[host] = struct{}{}
 		f, err := os.OpenFile(l.file, os.O_WRONLY|os.O_CREATE|os.O_APPEND, os.ModeAppend)
 		if err != nil {
@@ -115,8 +116,24 @@ func (d *smartFetcher) fetch(req *http.Request) (*http.Response, error) {
 	if err != nil {
 		return nil, err
 	}
+	if ip := lookupIP(req.Host); ip != nil && geoip.ChinaList.Contains(ip) {
+		log.Printf("Host %s in China, fetch remotely but not added", req.Host)
+		return resp, nil
+	}
+	log.Printf("ADD HOST: %s", req.Host)
 	if err := d.list.add(req.Host); err != nil {
 		log.Printf("fail to write list file: %s", err.Error())
 	}
 	return resp, nil
+}
+func lookupIP(host string) net.IP {
+	if addrs, err := net.LookupIP(host); err == nil {
+		for _, ip := range addrs {
+			ip = ip.To4()
+			if ip != nil {
+				return ip // return first IPv4 address
+			}
+		}
+	}
+	return nil
 }
