@@ -11,17 +11,9 @@ import (
 	"time"
 )
 
-type fetcher interface {
-	fetch(req *http.Request) (*http.Response, error)
-}
-
-type connector interface {
-	connect(host string, cli net.Conn) error
-}
-
 type Egress struct {
-	fetcher   fetcher
-	connector connector
+	fetcher
+	connector
 }
 
 func NewEgress(remote, dir string) (*Egress, error) {
@@ -34,9 +26,13 @@ func NewEgress(remote, dir string) (*Egress, error) {
 			TLSHandshakeTimeout: 3 * time.Second,
 		}}
 	//fetcher := directFetcher{httpClient}
-	fetcher := gaeFetcher{
-		client: httpClient,
-		remote: remote,
+	//fetcher := &gaeFetcher{
+	//	client: httpClient,
+	//	remote: remote,
+	//}
+	fetcher, err := newSmartFetcher(httpClient, remote, path.Join(dir, "blocklist"))
+	if err != nil {
+		return nil, err
 	}
 	//fetcher := dualFetcher{
 	//	directFetcher{httpClient},
@@ -58,25 +54,19 @@ func NewEgress(remote, dir string) (*Egress, error) {
 }
 
 func (e *Egress) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	//log.Printf("%s directly %s %s", req.Method, req.RequestURI, req.Proto)
-	//if err := e.serve(w, req, e.direct); err != nil {
-	//	log.Printf("fail to fetch directly: %s", err.Error())
-	//	log.Printf("%s via GAE %s %s", req.Method, req.RequestURI, req.Proto)
-	if err := e.serve(w, req, e.connector); err != nil {
-		log.Printf("fail to fetch: %s", err.Error())
-	}
-	//}
-}
-
-func (e *Egress) serve(w http.ResponseWriter, req *http.Request, de connector) error {
 	if req.Method == "CONNECT" {
-		return e.serveConnect(w, req, de)
+		if err := e.serveConnect(w, req); err != nil {
+			log.Print(err)
+		}
+	} else {
+		if err := e.serveOthers(w, req); err != nil {
+			log.Print(err)
+		}
 	}
-	return e.serveOthers(w, req, de)
 }
 
-func (e *Egress) serveOthers(w http.ResponseWriter, req *http.Request, de connector) error {
-	resp, err := e.fetcher.fetch(req)
+func (e *Egress) serveOthers(w http.ResponseWriter, req *http.Request) error {
+	resp, err := e.fetch(req)
 	if err != nil {
 		w.WriteHeader(http.StatusGatewayTimeout)
 		return fmt.Errorf("fail to fetch: %s", err.Error())
@@ -97,13 +87,13 @@ func copyHeader(dst, src http.Header) {
 	}
 }
 
-func (e *Egress) serveConnect(w http.ResponseWriter, req *http.Request, de connector) error {
+func (e *Egress) serveConnect(w http.ResponseWriter, req *http.Request) error {
 	cli, err := hijack(w)
 	if err != nil {
 		return fmt.Errorf("fail to hijack: %s", err.Error())
 	}
 	defer cli.Close()
-	return de.connect(req.URL.Host, cli)
+	return e.connect(req.URL.Host, cli)
 }
 func hijack(w http.ResponseWriter) (net.Conn, error) {
 	hij, ok := w.(http.Hijacker)

@@ -81,7 +81,6 @@ func (pool *certPool) get(host string) (*tls.Certificate, error) {
 	saveCertFile(cert, certFile)
 	return cert, nil
 }
-
 func saveCertFile(cert *tls.Certificate, file string) {
 	f, err := os.Create(file)
 	if err != nil {

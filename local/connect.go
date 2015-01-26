@@ -9,6 +9,10 @@ import (
 	"sync"
 )
 
+type connector interface {
+	connect(host string, cli net.Conn) error
+}
+
 type directConnector struct {
 	directFetcher
 }
@@ -93,4 +97,14 @@ func (g *fakeTLSConnector) connect(host string, cli net.Conn) error {
 func trimPort(hostPort string) string {
 	host, _, _ := net.SplitHostPort(hostPort)
 	return host
+}
+
+func ok200(w io.Writer) error {
+	_, err := w.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
+	return err
+}
+
+func timeout504(w io.Writer) error {
+	_, err := w.Write([]byte("HTTP/1.1 504 Gateway timeout\r\n\r\n"))
+	return err
 }
