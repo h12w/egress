@@ -15,11 +15,7 @@ import (
 	"sync"
 )
 
-func fakeHTTPSHandeshake(conn net.Conn, host string, pool *certPool) (net.Conn, error) {
-	if _, err := conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n")); err != nil {
-		return nil, err
-	}
-	// every host should have its own cert
+func fakeTLSHandeshake(conn net.Conn, host string, pool *certPool) (net.Conn, error) {
 	cert, err := pool.get(host)
 	if err != nil {
 		return nil, err
