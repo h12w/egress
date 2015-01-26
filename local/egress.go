@@ -20,33 +20,19 @@ func NewEgress(remote, dir string) (*Egress, error) {
 	httpClient := &http.Client{
 		Transport: &http.Transport{
 			Dial: (&net.Dialer{
-				Timeout:   3 * time.Second,
+				Timeout:   5 * time.Second,
 				KeepAlive: 30 * time.Second,
 			}).Dial,
 			TLSHandshakeTimeout: 3 * time.Second,
 		}}
-	//fetcher := directFetcher{httpClient}
-	//fetcher := &gaeFetcher{
-	//	client: httpClient,
-	//	remote: remote,
-	//}
 	fetcher, err := newSmartFetcher(httpClient, remote, path.Join(dir, "blocklist"))
 	if err != nil {
 		return nil, err
 	}
-	//fetcher := dualFetcher{
-	//	directFetcher{httpClient},
-	//	gaeFetcher{
-	//		client: httpClient,
-	//		remote: remote,
-	//	},
-	//}
-	//connector := &directDelegate{fetcher}
 	certs, err := newCertPool(path.Join(dir, "gae"))
 	if err != nil {
 		return nil, err
 	}
-
 	connector := &fakeTLSConnector{
 		fetcher: fetcher,
 		certs:   certs}
