@@ -41,7 +41,7 @@ type certPool struct {
 }
 
 func newCertPool(dir string) (*certPool, error) {
-	poolDir := path.Join(dir, "certs")
+	poolDir := path.Join(dir, "pool")
 	if err := os.MkdirAll(poolDir, 0755); err != nil && !os.IsExist(err) {
 		return nil, errors.Wrap(err)
 	}

@@ -8,7 +8,7 @@ import (
 
 func Serve(w http.ResponseWriter, r *http.Request) {
 	ctx := NewContext(r)
-	req, err := protocol.UnmarshalRequest(r.Body)
+	req, err := protocol.UnmarshalRequest(r)
 	if err != nil {
 		ctx.Errorf("fail to unmarshal a request: %s", err.Error())
 		w.WriteHeader(http.StatusBadRequest)

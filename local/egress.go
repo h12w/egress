@@ -29,7 +29,8 @@ func NewEgress(remote, dir string) (*Egress, error) {
 	if err != nil {
 		return nil, err
 	}
-	certs, err := newCertPool(path.Join(dir, "gae"))
+	//fetcher := &remoteFetcher{httpClient, remote}
+	certs, err := newCertPool(path.Join(dir, "cert"))
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +64,10 @@ func (e *Egress) serveOthers(w http.ResponseWriter, req *http.Request) error {
 	w.WriteHeader(resp.StatusCode)
 	_, err = io.Copy(w, resp.Body)
 	if err != nil {
-		return errors.Wrap(err)
+		if !isEOF(err) {
+			return errors.Wrap(err)
+		}
+		return nil
 	}
 	return nil
 }

@@ -25,12 +25,12 @@ func (d *directFetcher) fetch(req *http.Request) (*http.Response, error) {
 	return d.client.Transport.RoundTrip(req)
 }
 
-type gaeFetcher struct {
+type remoteFetcher struct {
 	client *http.Client
 	remote string
 }
 
-func (g *gaeFetcher) fetch(req *http.Request) (*http.Response, error) {
+func (g *remoteFetcher) fetch(req *http.Request) (*http.Response, error) {
 	req, err := protocol.MarshalRequest(req, g.remote)
 	if err != nil {
 		return nil, err
@@ -39,6 +39,7 @@ func (g *gaeFetcher) fetch(req *http.Request) (*http.Response, error) {
 	if err != nil {
 		return nil, errors.Wrap(err)
 	}
+	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		return resp, nil
 	}
@@ -67,7 +68,7 @@ func newSmartFetcher(client *http.Client, remote, listFile string) (*smartFetche
 	}
 	return &smartFetcher{
 		&directFetcher{client},
-		&gaeFetcher{client, remote},
+		&remoteFetcher{client, remote},
 		list,
 	}, nil
 }
