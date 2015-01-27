@@ -2,7 +2,6 @@ package local
 
 import (
 	"bufio"
-	"fmt"
 	"log"
 	"net"
 	"net/http"
@@ -11,6 +10,7 @@ import (
 
 	"h12.me/egress/geoip"
 	"h12.me/egress/protocol"
+	"h12.me/errors"
 )
 
 type fetcher interface {
@@ -37,7 +37,7 @@ func (g *gaeFetcher) fetch(req *http.Request) (*http.Response, error) {
 	}
 	resp, err := g.client.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err)
 	}
 	// UnmarshalResponse will do resp.Body.Close
 	return protocol.UnmarshalResponse(resp.Body, req)
@@ -69,7 +69,7 @@ func newBlockList(listFile string) (*blockList, error) {
 	m := make(map[string]struct{})
 	f, err := os.OpenFile(listFile, os.O_RDONLY|os.O_CREATE, 0600)
 	if err != nil {
-		return nil, fmt.Errorf("fail to open block list file: %s", err.Error())
+		return nil, errors.Wrap(err)
 	}
 	defer f.Close()
 	scanner := bufio.NewScanner(f)
@@ -77,7 +77,7 @@ func newBlockList(listFile string) (*blockList, error) {
 		m[scanner.Text()] = struct{}{}
 	}
 	if scanner.Err() != nil {
-		return nil, fmt.Errorf("fail to read block list file: %s", scanner.Err())
+		return nil, errors.Wrap(scanner.Err())
 	}
 	return &blockList{m: m, file: listFile}, nil
 }
@@ -96,7 +96,7 @@ func (l *blockList) add(host string) error {
 		l.m[host] = struct{}{}
 		f, err := os.OpenFile(l.file, os.O_WRONLY|os.O_CREATE|os.O_APPEND, os.ModeAppend)
 		if err != nil {
-			return err
+			return errors.Wrap(err)
 		}
 		defer f.Close()
 		f.WriteString(host)
@@ -135,5 +135,6 @@ func lookupIP(host string) net.IP {
 			}
 		}
 	}
+	// ignore error
 	return nil
 }

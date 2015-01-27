@@ -1,14 +1,14 @@
 package local
 
 import (
-	"errors"
-	"fmt"
 	"io"
 	"log"
 	"net"
 	"net/http"
 	"path"
 	"time"
+
+	"h12.me/errors"
 )
 
 type Egress struct {
@@ -55,7 +55,7 @@ func (e *Egress) serveOthers(w http.ResponseWriter, req *http.Request) error {
 	resp, err := e.fetch(req)
 	if err != nil {
 		w.WriteHeader(http.StatusGatewayTimeout)
-		return fmt.Errorf("fail to fetch: %s", err.Error())
+		return errors.Wrap(err)
 	}
 	defer resp.Body.Close()
 
@@ -63,7 +63,7 @@ func (e *Egress) serveOthers(w http.ResponseWriter, req *http.Request) error {
 	w.WriteHeader(resp.StatusCode)
 	_, err = io.Copy(w, resp.Body)
 	if err != nil {
-		return fmt.Errorf("fail to copy response body: %s", err.Error())
+		return errors.Wrap(err)
 	}
 	return nil
 }
@@ -76,7 +76,7 @@ func copyHeader(dst, src http.Header) {
 func (e *Egress) serveConnect(w http.ResponseWriter, req *http.Request) error {
 	cli, err := hijack(w)
 	if err != nil {
-		return fmt.Errorf("fail to hijack: %s", err.Error())
+		return err
 	}
 	defer cli.Close()
 	return e.connect(req.URL.Host, cli)
@@ -88,7 +88,7 @@ func hijack(w http.ResponseWriter) (net.Conn, error) {
 	}
 	conn, _, err := hij.Hijack()
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err)
 	}
 	return conn, nil
 }

@@ -2,11 +2,12 @@ package local
 
 import (
 	"bufio"
-	"fmt"
 	"io"
 	"net"
 	"net/http"
 	"sync"
+
+	"h12.me/errors"
 )
 
 type connector interface {
@@ -21,7 +22,7 @@ func (d *directConnector) connect(host string, cli net.Conn) error {
 	srv, err := d.client.Transport.(*http.Transport).Dial("tcp", host)
 	if err != nil {
 		timeout504(cli)
-		return fmt.Errorf("fail to dial directly: %s", err.Error())
+		return errors.Wrap(err)
 	}
 	defer srv.Close()
 	if err := ok200(cli); err != nil {
@@ -37,14 +38,14 @@ func (d *directConnector) bind(cli, srv io.ReadWriter) error {
 		defer wg.Done()
 		_, err := io.Copy(srv, cli)
 		if err != nil {
-			errChan <- fmt.Errorf("fail to copy from client to server: %s", err.Error())
+			errChan <- errors.Wrap(err)
 		}
 	}()
 	go func() {
 		defer wg.Done()
 		_, err := io.Copy(cli, srv)
 		if err != nil {
-			errChan <- fmt.Errorf("fail to copy from server to client: %s", err.Error())
+			errChan <- errors.Wrap(err)
 		}
 	}()
 	wg.Wait()
@@ -65,14 +66,14 @@ func (g *fakeTLSConnector) connect(host string, cli net.Conn) error {
 	}
 	conn, err := fakeTLSHandeshake(cli, trimPort(host), g.certs)
 	if err != nil {
-		return fmt.Errorf("fail to fake handshake with the client: %s", err.Error())
+		return err
 	}
 	defer conn.Close()
 
 	req, err := http.ReadRequest(bufio.NewReader(conn))
 	if err != nil {
-		if err != io.EOF {
-			return fmt.Errorf("ReadRequest: %s", err.Error())
+		if !isEOF(err) {
+			return errors.Wrap(err)
 		}
 		return nil
 	}
@@ -81,14 +82,14 @@ func (g *fakeTLSConnector) connect(host string, cli net.Conn) error {
 
 	resp, err := g.fetch(req)
 	if err != nil {
-		return fmt.Errorf("fail to fetch: %s", err.Error())
+		return err
 	}
 	defer resp.Body.Close()
 
 	err = resp.Write(conn)
 	if err != nil {
-		if err != io.EOF {
-			return fmt.Errorf("Write: %s", err.Error())
+		if !isEOF(err) {
+			return errors.Wrap(err)
 		}
 		return nil
 	}
@@ -101,10 +102,14 @@ func trimPort(hostPort string) string {
 
 func ok200(w io.Writer) error {
 	_, err := w.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
-	return err
+	return errors.Wrap(err)
 }
 
 func timeout504(w io.Writer) error {
 	_, err := w.Write([]byte("HTTP/1.1 504 Gateway timeout\r\n\r\n"))
-	return err
+	return errors.Wrap(err)
+}
+
+func isEOF(err error) bool {
+	return err == io.EOF || err.Error() == "EOF" || err.Error() == "unexpected EOF"
 }

@@ -13,6 +13,8 @@ import (
 	"os"
 	"path"
 	"sync"
+
+	"h12.me/errors"
 )
 
 func fakeTLSHandeshake(conn net.Conn, host string, pool *certPool) (net.Conn, error) {
@@ -26,7 +28,7 @@ func fakeTLSHandeshake(conn net.Conn, host string, pool *certPool) (net.Conn, er
 	}
 	tls := tls.Server(conn, config)
 	if err := tls.Handshake(); err != nil {
-		return nil, err
+		return nil, errors.Wrap(err)
 	}
 	return tls, nil
 }
@@ -41,11 +43,11 @@ type certPool struct {
 func newCertPool(dir string) (*certPool, error) {
 	poolDir := path.Join(dir, "certs")
 	if err := os.MkdirAll(poolDir, 0755); err != nil && !os.IsExist(err) {
-		return nil, err
+		return nil, errors.Wrap(err)
 	}
 	ca, err := tls.LoadX509KeyPair(path.Join(dir, "crt"), path.Join(dir, "key"))
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err)
 	}
 
 	return &certPool{
@@ -69,7 +71,7 @@ func (pool *certPool) get(host string) (*tls.Certificate, error) {
 		rcert, err := tls.X509KeyPair(pool.ca.Certificate[0], der)
 		if err == nil {
 			pool.data[host] = &rcert
-			return &rcert, err
+			return &rcert, errors.Wrap(err)
 		}
 	}
 
@@ -78,28 +80,31 @@ func (pool *certPool) get(host string) (*tls.Certificate, error) {
 		return nil, err
 	}
 	pool.data[host] = cert
-	saveCertFile(cert, certFile)
+	if err := saveCertFile(cert, certFile); err != nil {
+		return nil, err
+	}
 	return cert, nil
 }
-func saveCertFile(cert *tls.Certificate, file string) {
+func saveCertFile(cert *tls.Certificate, file string) error {
 	f, err := os.Create(file)
 	if err != nil {
-		return
+		return errors.Wrap(err)
 	}
 	defer f.Close()
 	for _, c := range cert.Certificate {
 		err = pem.Encode(f, &pem.Block{Type: "CERTIFICATE", Bytes: c})
 		if err != nil {
 			defer os.Remove(file)
-			break
+			return errors.Wrap(err)
 		}
 	}
+	return nil
 }
 
 func (pool *certPool) gen(host string) (*tls.Certificate, error) {
 	signer, err := x509.ParseCertificate(pool.ca.Certificate[0])
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err)
 	}
 	signer.Subject.CommonName = host
 
@@ -118,7 +123,7 @@ func (pool *certPool) gen(host string) (*tls.Certificate, error) {
 	key := pool.ca.PrivateKey.(*rsa.PrivateKey)
 	der, err := x509.CreateCertificate(rand.Reader, signee, signer, &key.PublicKey, key)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err)
 	}
 
 	return &tls.Certificate{
