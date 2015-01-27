@@ -39,6 +39,9 @@ func (g *gaeFetcher) fetch(req *http.Request) (*http.Response, error) {
 	if err != nil {
 		return nil, errors.Wrap(err)
 	}
+	if resp.StatusCode != http.StatusOK {
+		return resp, nil
+	}
 	// UnmarshalResponse will do resp.Body.Close
 	return protocol.UnmarshalResponse(resp.Body, req)
 }
@@ -53,6 +56,9 @@ type blockList struct {
 	file string
 	mu   sync.Mutex
 }
+
+// to sort the block list file:
+//     rev blocklist | sort | rev
 
 func newSmartFetcher(client *http.Client, remote, listFile string) (*smartFetcher, error) {
 	list, err := newBlockList(listFile)

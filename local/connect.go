@@ -82,6 +82,7 @@ func (g *fakeTLSConnector) connect(host string, cli net.Conn) error {
 
 	resp, err := g.fetch(req)
 	if err != nil {
+		timeout504(conn)
 		return err
 	}
 	defer resp.Body.Close()
