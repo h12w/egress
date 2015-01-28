@@ -28,9 +28,9 @@ func (d *directConnector) connect(host string, cli net.Conn) error {
 	if err := ok200(cli); err != nil {
 		return err
 	}
-	return d.bind(cli, srv)
+	return bind(cli, srv)
 }
-func (d *directConnector) bind(cli, srv io.ReadWriter) error {
+func bind(cli, srv io.ReadWriter) error {
 	var wg sync.WaitGroup
 	errChan := make(chan error, 2)
 	wg.Add(2)
