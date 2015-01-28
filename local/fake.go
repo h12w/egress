@@ -17,20 +17,15 @@ import (
 	"h12.me/errors"
 )
 
-func fakeTLSHandeshake(conn net.Conn, host string, pool *certPool) (net.Conn, error) {
+func fakeSecureConn(conn net.Conn, host string, pool *certPool) (net.Conn, error) {
 	cert, err := pool.get(host)
 	if err != nil {
 		return nil, err
 	}
-	config := &tls.Config{
+	return tls.Server(conn, &tls.Config{
 		Certificates: []tls.Certificate{*cert},
 		ServerName:   host,
-	}
-	tls := tls.Server(conn, config)
-	if err := tls.Handshake(); err != nil {
-		return nil, errors.Wrap(err)
-	}
-	return tls, nil
+	}), nil
 }
 
 type certPool struct {

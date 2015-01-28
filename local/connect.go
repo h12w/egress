@@ -64,7 +64,7 @@ func (g *fakeTLSConnector) connect(host string, cli net.Conn) error {
 	if err := ok200(cli); err != nil {
 		return err
 	}
-	conn, err := fakeTLSHandeshake(cli, trimPort(host), g.certs)
+	conn, err := fakeSecureConn(cli, trimPort(host), g.certs)
 	if err != nil {
 		return err
 	}

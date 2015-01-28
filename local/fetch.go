@@ -43,7 +43,6 @@ func (g *remoteFetcher) fetch(req *http.Request) (*http.Response, error) {
 	if resp.StatusCode != http.StatusOK {
 		return resp, nil
 	}
-	// UnmarshalResponse will do resp.Body.Close
 	return protocol.UnmarshalResponse(resp.Body, req)
 }
 

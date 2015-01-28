@@ -16,7 +16,8 @@ type Egress struct {
 	connector
 }
 
-func NewEgress(remote, dir string) (*Egress, error) {
+func NewEgress(remote, dir, fetch string) (*Egress, error) {
+	var err error
 	httpClient := &http.Client{
 		Transport: &http.Transport{
 			Dial: (&net.Dialer{
@@ -25,11 +26,20 @@ func NewEgress(remote, dir string) (*Egress, error) {
 			}).Dial,
 			TLSHandshakeTimeout: 3 * time.Second,
 		}}
-	fetcher, err := newSmartFetcher(httpClient, remote, path.Join(dir, "blocklist"))
+	var fetcher fetcher
+	switch fetch {
+	case "direct":
+		fetcher = &directFetcher{httpClient}
+		log.Print("fetch directly only!")
+	case "remote":
+		fetcher = &remoteFetcher{httpClient, remote}
+		log.Print("fetch from remote only")
+	default:
+		fetcher, err = newSmartFetcher(httpClient, remote, path.Join(dir, "blocklist"))
+	}
 	if err != nil {
 		return nil, err
 	}
-	//fetcher := &remoteFetcher{httpClient, remote}
 	certs, err := newCertPool(path.Join(dir, "cert"))
 	if err != nil {
 		return nil, err

@@ -10,7 +10,7 @@ import (
 func main() {
 	var opt option
 	opt.parse()
-	srv, err := local.NewEgress(opt.Remote, opt.Dir)
+	srv, err := local.NewEgress(opt.Remote, opt.Dir, opt.Fetch)
 	if err != nil {
 		log.Fatal(err)
 	}
