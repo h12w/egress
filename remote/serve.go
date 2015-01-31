@@ -6,7 +6,7 @@ import (
 	"h12.me/egress/protocol"
 )
 
-func Serve(w http.ResponseWriter, r *http.Request) {
+func ServeFetch(w http.ResponseWriter, r *http.Request) {
 	ctx := NewContext(r)
 	req, err := protocol.UnmarshalRequest(r)
 	if err != nil {

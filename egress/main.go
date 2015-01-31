@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net/http"
+	"net/url"
 	"time"
 
 	"h12.me/egress/local"
@@ -18,7 +19,11 @@ func init() {
 func main() {
 	var opt option
 	opt.parse()
-	egress, err := local.NewEgress(opt.Remote, opt.Dir, opt.Fetch)
+	remote, err := url.Parse(opt.Remote)
+	if err != nil {
+		log.Fatal(err)
+	}
+	egress, err := local.NewEgress(remote, opt.Dir, opt.Fetch)
 	if err != nil {
 		log.Fatal(err)
 	}
