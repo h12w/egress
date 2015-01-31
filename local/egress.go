@@ -24,7 +24,7 @@ func NewEgress(remote, dir, fetch string) (*Egress, error) {
 				Timeout:   10 * time.Second,
 				KeepAlive: 30 * time.Second,
 			}).Dial,
-			TLSHandshakeTimeout: 10 * time.Second,
+			TLSHandshakeTimeout: 15 * time.Second,
 		}}
 	var fetcher fetcher
 	switch fetch {

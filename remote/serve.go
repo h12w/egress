@@ -1,7 +1,6 @@
 package remote
 
 import (
-	"fmt"
 	"net/http"
 
 	"h12.me/egress/protocol"
@@ -13,7 +12,6 @@ func Serve(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		ctx.Errorf("fail to unmarshal a request: %s", err.Error())
 		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(w, err.Error())
 		return
 	}
 	defer req.Body.Close()

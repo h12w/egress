@@ -5,14 +5,14 @@ import (
 	"net/http"
 	"time"
 
-	"h12.me/egress"
 	"h12.me/egress/local"
 	"h12.me/egress/protocol"
+	"h12.me/egress/secret"
 )
 
 func init() {
-	protocol.NewWriter = egress.NewWriter
-	protocol.NewReader = egress.NewReader
+	protocol.NewWriter = secret.NewWriter
+	protocol.NewReader = secret.NewReader
 }
 
 func main() {
