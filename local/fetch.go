@@ -2,6 +2,9 @@ package local
 
 import (
 	"bufio"
+	"bytes"
+	"io"
+	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
@@ -39,11 +42,24 @@ func (g *remoteFetcher) fetch(req *http.Request) (*http.Response, error) {
 	if err != nil {
 		return nil, errors.Wrap(err)
 	}
-	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		return resp, nil
 	}
-	return protocol.UnmarshalResponse(resp.Body, req)
+	r, err := protocol.UnmarshalResponse(resp.Body, req)
+	if r != nil && r.Body != nil {
+		r.Body = &chainCloser{r.Body, resp.Body}
+	}
+	return r, err
+}
+
+type chainCloser struct {
+	io.ReadCloser
+	c io.ReadCloser
+}
+
+func (c *chainCloser) Close() error {
+	c.ReadCloser.Close()
+	return c.c.Close()
 }
 
 type smartFetcher struct {
@@ -115,12 +131,18 @@ func (d *smartFetcher) fetch(req *http.Request) (*http.Response, error) {
 	if d.list.has(req.Host) {
 		return d.remote.fetch(req)
 	}
+	rec := newBodyRecorder(req.Body)
+	req.Body = rec
 	if resp, err := d.direct.fetch(req); err == nil {
 		return resp, err
 	}
+	req.Body = rec.reborn()
 	resp, err := d.remote.fetch(req)
 	if err != nil {
 		return nil, err
+	}
+	if len(rec.data) > 0 {
+		log.Print("REBORN SUCCESS!")
 	}
 	if ip := lookupIP(req.Host); ip != nil && geoip.ChinaList.Contains(ip) {
 		log.Printf("Host %s in China, fetch remotely but not added", req.Host)
@@ -143,4 +165,31 @@ func lookupIP(host string) net.IP {
 	}
 	// ignore error
 	return nil
+}
+
+type bodyRecorder struct {
+	rc   io.ReadCloser
+	data []byte
+}
+
+func newBodyRecorder(rc io.ReadCloser) *bodyRecorder {
+	if rc == nil {
+		return nil
+	}
+	return &bodyRecorder{rc: rc}
+}
+
+func (b *bodyRecorder) Read(p []byte) (n int, err error) {
+	n, err = b.rc.Read(p)
+	b.data = append(b.data, p[:n]...)
+	return
+}
+
+func (b *bodyRecorder) Close() error {
+	return b.rc.Close()
+}
+
+func (b *bodyRecorder) reborn() io.ReadCloser {
+	ioutil.ReadAll(b.rc)
+	return ioutil.NopCloser(bytes.NewReader(b.data))
 }

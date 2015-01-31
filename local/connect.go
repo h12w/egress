@@ -89,10 +89,14 @@ func (g *fakeTLSConnector) connect(host string, cli net.Conn) error {
 
 	err = resp.Write(conn)
 	if err != nil {
-		if !isEOF(err) {
-			return errors.Wrap(err)
+		switch err.(type) {
+		case *net.OpError:
+			return nil
 		}
-		return nil
+		if isEOF(err) {
+			return nil
+		}
+		return errors.Wrap(err)
 	}
 	return nil
 }

@@ -21,10 +21,10 @@ func NewEgress(remote, dir, fetch string) (*Egress, error) {
 	httpClient := &http.Client{
 		Transport: &http.Transport{
 			Dial: (&net.Dialer{
-				Timeout:   5 * time.Second,
+				Timeout:   10 * time.Second,
 				KeepAlive: 30 * time.Second,
 			}).Dial,
-			TLSHandshakeTimeout: 3 * time.Second,
+			TLSHandshakeTimeout: 10 * time.Second,
 		}}
 	var fetcher fetcher
 	switch fetch {
