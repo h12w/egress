@@ -4,7 +4,9 @@ package remote
 
 import (
 	"log"
+	"net"
 	"net/http"
+	"time"
 )
 
 type Context struct {
@@ -16,7 +18,14 @@ func NewContext(r *http.Request) *Context {
 }
 
 func (ctx *Context) NewClient() *http.Client {
-	return &http.Client{}
+	return &http.Client{
+		Transport: &http.Transport{
+			Dial: (&net.Dialer{
+				Timeout:   10 * time.Second,
+				KeepAlive: 30 * time.Second,
+			}).Dial,
+			TLSHandshakeTimeout: 10 * time.Second,
+		}}
 }
 
 func (ctx *Context) Errorf(format string, a ...interface{}) {
