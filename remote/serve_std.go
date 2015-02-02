@@ -15,6 +15,7 @@ func ServeConnect(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
+	ctx.Infof("Connecting to %s", host)
 	cli, err := protocol.Hijack(w)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
