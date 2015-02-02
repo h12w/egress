@@ -15,15 +15,7 @@ func ServeConnect(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	ctx.Infof("Connecting to %s", host)
-	cli, err := protocol.Hijack(w)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		ctx.Errorf("fail to hijack incoming connection")
-		return
-	}
-	defer cli.Close()
-	if err := protocol.Connect(host, cli); err != nil {
+	if err := protocol.Connect(w, r); err != nil {
 		ctx.Errorf("%v", err)
 	}
 }

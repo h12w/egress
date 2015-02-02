@@ -9,7 +9,6 @@ import (
 	"path"
 	"time"
 
-	"h12.me/egress/protocol"
 	"h12.me/errors"
 )
 
@@ -81,10 +80,5 @@ func copyHeader(dst, src http.Header) {
 }
 
 func (e *Egress) serveConnect(w http.ResponseWriter, req *http.Request) error {
-	cli, err := protocol.Hijack(w)
-	if err != nil {
-		return err
-	}
-	defer cli.Close()
-	return e.connect(req, cli)
+	return e.connect(w, req)
 }

@@ -15,7 +15,7 @@ import (
 )
 
 type connector interface {
-	connect(r *http.Request, cli net.Conn) error
+	connect(w http.ResponseWriter, req *http.Request) error
 }
 
 func newConnector(typ string, remote *url.URL, fetcher fetcher, blockList *blockList, workDir string) (connector, error) {
@@ -45,15 +45,15 @@ func newConnector(typ string, remote *url.URL, fetcher fetcher, blockList *block
 
 type directConnector struct{}
 
-func (c *directConnector) connect(r *http.Request, cli net.Conn) error {
-	return protocol.Connect(r.URL.Host, cli)
+func (c *directConnector) connect(w http.ResponseWriter, req *http.Request) error {
+	return protocol.Connect(w, req)
 }
 
 type remoteConnector struct {
 	remote *url.URL
 }
 
-func (c *remoteConnector) connect(r *http.Request, cli net.Conn) error {
+func (c *remoteConnector) connect(w http.ResponseWriter, req *http.Request) error {
 	var remote net.Conn
 	var err error
 	switch c.remote.Scheme {
@@ -73,18 +73,26 @@ func (c *remoteConnector) connect(r *http.Request, cli net.Conn) error {
 	if err := (&http.Request{
 		Method: "GET",
 		URL:    c.remote,
-		Header: http.Header{"Connect-Host": []string{r.URL.Host}},
+		Header: http.Header{
+			"Connect-Host": []string{req.URL.Host},
+			//			"Connection":   []string{"Keep-Alive"},
+		},
 	}).Write(remote); err != nil {
 		return errors.Wrap(err)
 	}
-	resp, err := http.ReadResponse(bufio.NewReader(remote), r)
+	resp, err := http.ReadResponse(bufio.NewReader(remote), req)
 	if err != nil {
 		return errors.Wrap(err)
 	}
 	if resp.StatusCode != http.StatusOK {
-		resp.Write(cli)
+		w.WriteHeader(resp.StatusCode)
 		return errors.Format("error response from remote: %s", resp.Status)
 	}
+	cli, err := protocol.Hijack(w)
+	if err != nil {
+		return err
+	}
+	defer cli.Close()
 	if err := protocol.OK200(cli); err != nil {
 		return err
 	}
@@ -115,15 +123,15 @@ func newSmartConnector(remote *url.URL, blockList *blockList) *smartConnector {
 	}
 }
 
-func (c *smartConnector) connect(r *http.Request, cli net.Conn) error {
-	host := trimPort(r.URL.Host)
+func (c *smartConnector) connect(w http.ResponseWriter, req *http.Request) error {
+	host := trimPort(req.URL.Host)
 	if c.list.has(host) {
-		return c.remote.connect(r, cli)
+		return c.remote.connect(w, req)
 	}
-	if err := c.direct.connect(r, cli); err == nil {
+	if err := c.direct.connect(w, req); err == nil {
 		return nil
 	}
-	if err := c.remote.connect(r, cli); err != nil {
+	if err := c.remote.connect(w, req); err != nil {
 		return err
 	}
 	if err := c.list.add(host); err != nil {
@@ -137,8 +145,13 @@ type fakeTLSConnector struct {
 	certs *certPool
 }
 
-func (f *fakeTLSConnector) connect(r *http.Request, cli net.Conn) error {
-	host := r.URL.Host
+func (f *fakeTLSConnector) connect(w http.ResponseWriter, req *http.Request) error {
+	host := req.URL.Host
+	cli, err := protocol.Hijack(w)
+	if err != nil {
+		return err
+	}
+	defer cli.Close()
 	if err := protocol.OK200(cli); err != nil {
 		return err
 	}
@@ -148,7 +161,7 @@ func (f *fakeTLSConnector) connect(r *http.Request, cli net.Conn) error {
 	}
 	defer conn.Close()
 
-	req, err := http.ReadRequest(bufio.NewReader(conn))
+	r, err := http.ReadRequest(bufio.NewReader(conn))
 	if err != nil {
 		if !isEOF(err) {
 			return errors.Wrap(err)
@@ -158,7 +171,7 @@ func (f *fakeTLSConnector) connect(r *http.Request, cli net.Conn) error {
 	req.URL.Scheme = "https" // fill empty scheme with https
 	req.URL.Host = req.Host  // fill empty Host with req.Host
 
-	resp, err := f.fetch(req)
+	resp, err := f.fetch(r)
 	if err != nil {
 		protocol.Timeout504(conn)
 		return err

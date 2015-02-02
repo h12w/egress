@@ -2,6 +2,7 @@ package protocol
 
 import (
 	"io"
+	"log"
 	"net"
 	"net/http"
 	"sync"
@@ -9,16 +10,31 @@ import (
 	"h12.me/errors"
 )
 
-func Connect(host string, cli net.Conn) error {
+func Connect(w http.ResponseWriter, req *http.Request) error {
+	host := req.URL.Host
+	log.Printf("Connecting to %s", host)
+
 	srv, err := net.Dial("tcp", host)
 	if err != nil {
-		Timeout504(cli)
+		w.WriteHeader(http.StatusGatewayTimeout)
 		return errors.Wrap(err)
 	}
 	defer srv.Close()
+
+	log.Printf("Connected to %s", host)
+
+	cli, err := Hijack(w)
+	if err != nil {
+		return err
+	}
+	defer cli.Close()
+
+	log.Printf("Hijacked!")
+
 	if err := OK200(cli); err != nil {
 		return err
 	}
+	log.Printf("Binding!")
 	return Bind(cli, srv)
 }
 
