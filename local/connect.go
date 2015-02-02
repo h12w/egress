@@ -54,12 +54,19 @@ type remoteConnector struct {
 }
 
 func (c *remoteConnector) connect(r *http.Request, cli net.Conn) error {
-	remote, err := net.Dial("tcp", c.remote.Host)
+	var remote net.Conn
+	var err error
+	switch c.remote.Scheme {
+	case "https":
+		host := setDefaultPort(c.remote.Host, "443")
+		remote, err = tls.Dial("tcp", host, &tls.Config{})
+	case "http":
+		remote, err = net.Dial("tcp", setDefaultPort(c.remote.Host, "80"))
+	default:
+		return errors.Format("invalid scheme for the remote %s", c.remote.String())
+	}
 	if err != nil {
 		return errors.Wrap(err)
-	}
-	if c.remote.Scheme == "https" {
-		remote = tls.Client(remote, &tls.Config{ServerName: "a"}) //???
 	}
 	defer remote.Close()
 
@@ -81,6 +88,16 @@ func (c *remoteConnector) connect(r *http.Request, cli net.Conn) error {
 		return err
 	}
 	return protocol.Bind(cli, remote)
+}
+func setDefaultPort(hostPort, defaultPort string) string {
+	host, port, _ := net.SplitHostPort(hostPort)
+	if host == "" {
+		host = hostPort
+	}
+	if port == "" {
+		port = defaultPort
+	}
+	return net.JoinHostPort(host, port)
 }
 
 type smartConnector struct {

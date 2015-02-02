@@ -12,7 +12,7 @@ func ServeConnect(w http.ResponseWriter, r *http.Request) {
 	ctx := NewContext(r)
 	host := r.Header.Get("Connect-Host")
 	if r.Method != "CONNECT" || host == "" {
-		w.WriteHeader(http.StatusBadRequest)
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 	cli, err := protocol.Hijack(w)
