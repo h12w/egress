@@ -80,5 +80,5 @@ func copyHeader(dst, src http.Header) {
 }
 
 func (e *Egress) serveConnect(w http.ResponseWriter, req *http.Request) error {
-	return e.connect(w, req)
+	return e.connect(w, req.URL.Host)
 }

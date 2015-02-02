@@ -10,8 +10,7 @@ import (
 	"h12.me/errors"
 )
 
-func Connect(w http.ResponseWriter, req *http.Request) error {
-	host := req.URL.Host
+func Connect(w http.ResponseWriter, host string) error {
 	log.Printf("Connecting to %s", host)
 
 	srv, err := net.Dial("tcp", host)
@@ -56,6 +55,7 @@ func Bind(cli, srv io.ReadWriter) error {
 			errChan <- errors.Wrap(err)
 		}
 	}()
+	log.Print("binded")
 	wg.Wait()
 	if err, hasErr := <-errChan; hasErr {
 		return err
