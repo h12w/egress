@@ -37,7 +37,7 @@ func Connect(w http.ResponseWriter, host string) error {
 	return Bind(cli, srv)
 }
 
-func Bind(cli, srv io.ReadWriter) error {
+func Bind(cli, srv io.ReadWriteCloser) error {
 	var wg sync.WaitGroup
 	errChan := make(chan error, 2)
 	wg.Add(2)
@@ -45,7 +45,8 @@ func Bind(cli, srv io.ReadWriter) error {
 		defer wg.Done()
 		_, err := io.Copy(srv, cli)
 		if err != nil {
-			wg.Done()
+			cli.Close()
+			srv.Close()
 			log.Printf("COPY ERROR: %s", err.Error())
 			errChan <- errors.Wrap(err)
 		}
@@ -54,7 +55,8 @@ func Bind(cli, srv io.ReadWriter) error {
 		defer wg.Done()
 		_, err := io.Copy(cli, srv)
 		if err != nil {
-			wg.Done()
+			cli.Close()
+			srv.Close()
 			log.Printf("COPY ERROR: %s", err.Error())
 			errChan <- errors.Wrap(err)
 		}

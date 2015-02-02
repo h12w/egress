@@ -59,7 +59,7 @@ func (c *remoteConnector) connect(w http.ResponseWriter, host string) error {
 	switch c.remote.Scheme {
 	case "https":
 		host := setDefaultPort(c.remote.Host, "443")
-		remote, err = tls.Dial("tcp", host, &tls.Config{})
+		remote, err = tls.Dial("tcp", host, &tls.Config{InsecureSkipVerify: true})
 	case "http":
 		remote, err = net.Dial("tcp", setDefaultPort(c.remote.Host, "80"))
 	default:
