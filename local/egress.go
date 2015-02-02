@@ -9,6 +9,7 @@ import (
 	"path"
 	"time"
 
+	"h12.me/egress/protocol"
 	"h12.me/errors"
 )
 
@@ -17,8 +18,7 @@ type Egress struct {
 	connector
 }
 
-func NewEgress(remote *url.URL, dir, fetch string) (*Egress, error) {
-	var err error
+func NewEgress(remote *url.URL, workDir, fetcherType, connectorType string) (*Egress, error) {
 	httpClient := &http.Client{
 		Transport: &http.Transport{
 			Dial: (&net.Dialer{
@@ -27,28 +27,19 @@ func NewEgress(remote *url.URL, dir, fetch string) (*Egress, error) {
 			}).Dial,
 			TLSHandshakeTimeout: 15 * time.Second,
 		}}
-	remote.Path = path.Join(remote.Path, "f")
-	var fetcher fetcher
-	switch fetch {
-	case "direct":
-		fetcher = &directFetcher{httpClient}
-		log.Print("fetch directly only!")
-	case "remote":
-		fetcher = &remoteFetcher{httpClient, remote.String()}
-		log.Print("fetch from remote only")
-	default:
-		fetcher, err = newSmartFetcher(httpClient, remote.String(), path.Join(dir, "blocklist"))
-	}
+	blockList, err := newBlockList(path.Join(workDir, "blocklist"))
 	if err != nil {
 		return nil, err
 	}
-	certs, err := newCertPool(path.Join(dir, "cert"))
+	fetcher, err := newFetcher(fetcherType, remote, httpClient, blockList)
 	if err != nil {
 		return nil, err
 	}
-	connector := &fakeTLSConnector{
-		fetcher: fetcher,
-		certs:   certs}
+	connector, err := newConnector(connectorType, remote, fetcher, blockList, workDir)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Egress{fetcher, connector}, nil
 }
 
@@ -90,21 +81,10 @@ func copyHeader(dst, src http.Header) {
 }
 
 func (e *Egress) serveConnect(w http.ResponseWriter, req *http.Request) error {
-	cli, err := hijack(w)
+	cli, err := protocol.Hijack(w)
 	if err != nil {
 		return err
 	}
 	defer cli.Close()
-	return e.connect(req.URL.Host, cli)
-}
-func hijack(w http.ResponseWriter) (net.Conn, error) {
-	hij, ok := w.(http.Hijacker)
-	if !ok {
-		return nil, errors.New("cannot hijack the ResponseWriter")
-	}
-	conn, _, err := hij.Hijack()
-	if err != nil {
-		return nil, errors.Wrap(err)
-	}
-	return conn, nil
+	return e.connect(req, cli)
 }

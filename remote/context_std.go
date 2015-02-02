@@ -31,3 +31,7 @@ func (ctx *Context) NewClient() *http.Client {
 func (ctx *Context) Errorf(format string, a ...interface{}) {
 	log.Printf(format, a...)
 }
+
+func (ctx *Context) Infof(format string, a ...interface{}) {
+	log.Printf(format, a...)
+}

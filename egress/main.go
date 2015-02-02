@@ -23,7 +23,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	egress, err := local.NewEgress(remote, opt.Dir, opt.Fetch)
+	egress, err := local.NewEgress(remote, opt.Dir, opt.Fetch, opt.Connect)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -33,6 +33,9 @@ func main() {
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
 	}
-	log.Printf("Egress local server starts listening on http://0.0.0.0:%s.", opt.Port)
-	srv.ListenAndServe()
+	log.Print("Egress local server started.")
+	log.Printf("        http://0.0.0.0:%s   ->   %s", opt.Port, opt.Remote)
+	if err := srv.ListenAndServe(); err != nil {
+		log.Print(err)
+	}
 }
