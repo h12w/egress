@@ -45,6 +45,7 @@ func Bind(cli, srv io.ReadWriter) error {
 		defer wg.Done()
 		_, err := io.Copy(srv, cli)
 		if err != nil {
+			log.Printf("COPY ERROR: %s", err.Error())
 			errChan <- errors.Wrap(err)
 		}
 	}()
@@ -52,6 +53,7 @@ func Bind(cli, srv io.ReadWriter) error {
 		defer wg.Done()
 		_, err := io.Copy(cli, srv)
 		if err != nil {
+			log.Printf("COPY ERROR: %s", err.Error())
 			errChan <- errors.Wrap(err)
 		}
 	}()
