@@ -11,8 +11,8 @@ import (
 func ServeConnect(w http.ResponseWriter, r *http.Request) {
 	ctx := NewContext(r)
 	host := r.Header.Get("Connect-Host")
-	if r.Method != "CONNECT" || host == "" {
-		w.WriteHeader(http.StatusInternalServerError)
+	if host == "" {
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 	cli, err := protocol.Hijack(w)

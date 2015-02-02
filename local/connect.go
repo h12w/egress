@@ -71,7 +71,7 @@ func (c *remoteConnector) connect(r *http.Request, cli net.Conn) error {
 	defer remote.Close()
 
 	if err := (&http.Request{
-		Method: "CONNECT",
+		Method: "GET",
 		URL:    c.remote,
 		Header: http.Header{"Connect-Host": []string{r.URL.Host}},
 	}).Write(remote); err != nil {
@@ -82,7 +82,8 @@ func (c *remoteConnector) connect(r *http.Request, cli net.Conn) error {
 		return errors.Wrap(err)
 	}
 	if resp.StatusCode != http.StatusOK {
-		return errors.Format("error response from remote: %v", resp.StatusCode)
+		resp.Write(cli)
+		return errors.Format("error response from remote: %s", resp.Status)
 	}
 	if err := protocol.OK200(cli); err != nil {
 		return err
