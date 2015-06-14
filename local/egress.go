@@ -21,7 +21,7 @@ func NewEgress(remote *url.URL, workDir, fetcherType, connectorType string) (*Eg
 	httpClient := &http.Client{
 		Transport: &http.Transport{
 			Dial: (&net.Dialer{
-				Timeout:   10 * time.Second,
+				Timeout:   15 * time.Second,
 				KeepAlive: 30 * time.Second,
 			}).Dial,
 			TLSHandshakeTimeout: 15 * time.Second,

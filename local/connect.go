@@ -177,14 +177,17 @@ func (f *fakeTLSConnector) connect(w http.ResponseWriter, host string) error {
 		return err
 	}
 	defer resp.Body.Close()
+	log.Print("fetch done.")
 
-	err = resp.Write(conn)
-	if err != nil {
+	log.Print("writing response.")
+	if err := resp.Write(conn); err != nil {
 		switch err.(type) {
 		case *net.OpError:
+			log.Print(err)
 			return nil
 		}
 		if isEOF(err) {
+			log.Print(err)
 			return nil
 		}
 		return errors.Wrap(err)

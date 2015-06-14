@@ -47,6 +47,7 @@ type remoteFetcher struct {
 }
 
 func (g *remoteFetcher) fetch(req *http.Request) (*http.Response, error) {
+	log.Printf("fetch: %v", req.URL)
 	req, err := protocol.MarshalRequest(req, g.remote)
 	if err != nil {
 		return nil, err
@@ -56,11 +57,14 @@ func (g *remoteFetcher) fetch(req *http.Request) (*http.Response, error) {
 		return nil, errors.Wrap(err)
 	}
 	if resp.StatusCode != http.StatusOK {
+		log.Printf("resp status: %v", resp.StatusCode)
 		resp.Body.Close()
 		return resp, nil
 	}
+	log.Print("unmarshaling body")
 	r, err := protocol.UnmarshalResponse(resp.Body, req)
 	if r != nil && r.Body != nil {
+		log.Print("return body")
 		r.Body = &chainCloser{r.Body, resp.Body}
 	} else {
 		resp.Body.Close()

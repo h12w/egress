@@ -24,6 +24,9 @@ func newBlockList(listFile string) (*blockList, error) {
 	m := make(map[string]struct{})
 	f, err := os.OpenFile(listFile, os.O_RDONLY|os.O_CREATE, 0600)
 	if err != nil {
+		if os.IsNotExist(err) {
+			return &blockList{m: m, file: listFile}, nil
+		}
 		return nil, errors.Wrap(err)
 	}
 	defer f.Close()
