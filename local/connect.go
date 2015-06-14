@@ -171,27 +171,28 @@ func (f *fakeTLSConnector) connect(w http.ResponseWriter, host string) error {
 	req.URL.Scheme = "https" // fill empty scheme with https
 	req.URL.Host = req.Host  // fill empty Host with req.Host
 
+	log.Printf("fetch start: %v", req.URL)
 	resp, err := f.fetch(req)
 	if err != nil {
 		protocol.Timeout504(conn)
 		return err
 	}
 	defer resp.Body.Close()
-	log.Print("fetch done.")
+	log.Printf("fetch done: %v", req.URL)
 
-	log.Print("writing response.")
+	log.Printf("writing response: %v", req.URL)
 	if err := resp.Write(conn); err != nil {
+		log.Print(errors.Wrap(err), req.URL)
 		switch err.(type) {
 		case *net.OpError:
-			log.Print(err)
 			return nil
 		}
 		if isEOF(err) {
-			log.Print(err)
 			return nil
 		}
 		return errors.Wrap(err)
 	}
+	log.Printf("all done: %v", req.URL)
 	return nil
 }
 func trimPort(hostPort string) string {

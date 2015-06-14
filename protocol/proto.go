@@ -39,7 +39,7 @@ func UnmarshalRequest(req *http.Request) (*http.Request, error) {
 }
 
 func MarshalResponse(resp *http.Response, w io.Writer) error {
-	wc := NewWriter(w)
+	wc := nopWriteCloser{w} //NewWriter(w)
 	if err := resp.Write(wc); err != nil {
 		wc.Close()
 		return errors.Wrap(err)
@@ -48,7 +48,7 @@ func MarshalResponse(resp *http.Response, w io.Writer) error {
 }
 
 func UnmarshalResponse(rd io.Reader, req *http.Request) (*http.Response, error) {
-	rc := NewReader(rd)
+	rc := nopReadCloser{rd} //NewReader(rd)
 	ret, err := http.ReadResponse(bufio.NewReader(rc), req)
 	if err != nil {
 		rc.Close()

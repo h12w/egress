@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"h12.me/egress/protocol"
-	"log"
 )
 
 func ServeFetch(w http.ResponseWriter, r *http.Request) {
@@ -16,6 +15,7 @@ func ServeFetch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer req.Body.Close()
+	ctx.Infof("request: %v", req.URL)
 	// a proxy should use Transport directly to avoid automatic redirection and
 	// return the response as long as it is not nil.
 	resp, err := ctx.NewClient().Transport.RoundTrip(req)
@@ -25,6 +25,7 @@ func ServeFetch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer resp.Body.Close()
+	ctx.Infof("respond: %v", resp.StatusCode)
 	if err := protocol.MarshalResponse(resp, w); err != nil {
 		ctx.Errorf("fail to marshal a response: %s", err.Error())
 		if hij, ok := w.(http.Hijacker); ok {
