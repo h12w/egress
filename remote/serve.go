@@ -9,8 +9,6 @@ import (
 
 func ServeFetch(w http.ResponseWriter, r *http.Request) {
 	ctx := NewContext(r)
-	ctx.Infof("ANY commment")
-	log.Print("HERE")
 	req, err := protocol.UnmarshalRequest(r)
 	if err != nil {
 		ctx.Errorf("fail to unmarshal a request: %s", err.Error())
@@ -20,7 +18,6 @@ func ServeFetch(w http.ResponseWriter, r *http.Request) {
 	defer req.Body.Close()
 	// a proxy should use Transport directly to avoid automatic redirection and
 	// return the response as long as it is not nil.
-	ctx.Infof("fetching %v", req)
 	resp, err := ctx.NewClient().Transport.RoundTrip(req)
 	if resp == nil {
 		ctx.Errorf("fail to fetch: %v", err)
