@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 
+	"encoding/json"
 	"h12.me/errors"
 )
 
@@ -38,23 +39,50 @@ func UnmarshalRequest(req *http.Request) (*http.Request, error) {
 	return ret, errors.Wrap(rc.Close())
 }
 
-func MarshalResponse(resp *http.Response, w io.Writer) error {
-	wc := nopWriteCloser{w} //NewWriter(w)
-	if err := resp.Write(wc); err != nil {
-		wc.Close()
-		return errors.Wrap(err)
-	}
-	return wc.Close()
+type Header struct {
+	Status        string
+	StatusCode    int
+	Proto         string
+	ProtoMajor    int
+	ProtoMinor    int
+	Header        http.Header
+	ContentLength int64
 }
 
-func UnmarshalResponse(rd io.Reader, req *http.Request) (*http.Response, error) {
-	rc := nopReadCloser{rd} //NewReader(rd)
-	ret, err := http.ReadResponse(bufio.NewReader(rc), req)
+func MarshalResponse(resp *http.Response, w http.ResponseWriter) error {
+	buf, err := json.Marshal(Header{
+		Status:        resp.Status,
+		StatusCode:    resp.StatusCode,
+		Proto:         resp.Proto,
+		ProtoMajor:    resp.ProtoMajor,
+		ProtoMinor:    resp.ProtoMinor,
+		Header:        resp.Header,
+		ContentLength: resp.ContentLength,
+	})
 	if err != nil {
-		rc.Close()
+		return errors.Wrap(err)
+	}
+	w.Header().Set("egress-remote-header", string(buf))
+	_, err = io.Copy(w, resp.Body)
+	return errors.Wrap(err)
+}
+
+func UnmarshalResponse(resp *http.Response, req *http.Request) (*http.Response, error) {
+	var h Header
+	err := json.Unmarshal([]byte(resp.Header.Get("egress-remote-header")), &h)
+	if err != nil {
 		return nil, errors.Wrap(err)
 	}
-	return ret, errors.Wrap(rc.Close())
+	return &http.Response{
+		Status:        h.Status,
+		StatusCode:    h.StatusCode,
+		Proto:         h.Proto,
+		ProtoMajor:    h.ProtoMajor,
+		ProtoMinor:    h.ProtoMinor,
+		Header:        h.Header,
+		ContentLength: h.ContentLength,
+		Body:          resp.Body,
+	}, nil
 }
 
 type nopReadCloser struct {

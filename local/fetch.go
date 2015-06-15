@@ -62,10 +62,10 @@ func (g *remoteFetcher) fetch(req *http.Request) (*http.Response, error) {
 		return resp, nil
 	}
 	log.Print("unmarshaling body")
-	r, err := protocol.UnmarshalResponse(resp.Body, req)
+	r, err := protocol.UnmarshalResponse(resp, req)
 	if r != nil && r.Body != nil {
-		log.Print("return body")
-		r.Body = &chainCloser{r.Body, resp.Body}
+		//log.Print("return body")
+		//r.Body = &chainCloser{r.Body, resp.Body}
 	} else {
 		resp.Body.Close()
 	}
