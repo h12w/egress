@@ -9,7 +9,7 @@ import (
 	"path"
 	"time"
 
-	"h12.me/errors"
+	"h12.io/errors"
 )
 
 type Egress struct {

@@ -6,9 +6,9 @@ import (
 	"net/url"
 	"time"
 
-	"h12.me/egress/local"
-	"h12.me/egress/protocol"
-	"h12.me/egress/secret"
+	"h12.io/egress/local"
+	"h12.io/egress/protocol"
+	"h12.io/egress/secret"
 )
 
 func init() {

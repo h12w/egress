@@ -10,8 +10,8 @@ import (
 	"net/url"
 	"path"
 
-	"h12.me/egress/protocol"
-	"h12.me/errors"
+	"h12.io/egress/protocol"
+	"h12.io/errors"
 )
 
 type connector interface {

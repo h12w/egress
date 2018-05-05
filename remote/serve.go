@@ -3,7 +3,7 @@ package remote
 import (
 	"net/http"
 
-	"h12.me/egress/protocol"
+	"h12.io/egress/protocol"
 )
 
 func ServeFetch(w http.ResponseWriter, r *http.Request) {

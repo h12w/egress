@@ -14,7 +14,7 @@ import (
 	"path"
 	"sync"
 
-	"h12.me/errors"
+	"h12.io/errors"
 )
 
 func fakeSecureConn(conn net.Conn, host string, pool *certPool) (net.Conn, error) {

@@ -7,8 +7,8 @@ import (
 	"os"
 	"sync"
 
-	"h12.me/egress/geoip"
-	"h12.me/errors"
+	"h12.io/egress/geoip"
+	"h12.io/errors"
 )
 
 type blockList struct {

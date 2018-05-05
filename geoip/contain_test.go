@@ -4,7 +4,7 @@ import (
 	"net"
 	"testing"
 
-	"h12.me/egress/geoip"
+	"h12.io/egress/geoip"
 )
 
 func TestSearch(t *testing.T) {

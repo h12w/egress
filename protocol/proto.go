@@ -1,4 +1,4 @@
-package protocol // import "h12.me/egress/protocol"
+package protocol // import "h12.io/egress/protocol"
 
 import (
 	"bufio"
@@ -7,7 +7,7 @@ import (
 	"net/http"
 
 	"encoding/json"
-	"h12.me/errors"
+	"h12.io/errors"
 )
 
 var (

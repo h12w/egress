@@ -5,7 +5,7 @@ package remote
 import (
 	"net/http"
 
-	"h12.me/egress/protocol"
+	"h12.io/egress/protocol"
 )
 
 func ServeConnect(w http.ResponseWriter, r *http.Request) {

@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"sync"
 
-	"h12.me/errors"
+	"h12.io/errors"
 )
 
 func Connect(w http.ResponseWriter, host string) error {
